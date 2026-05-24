@@ -1,0 +1,398 @@
+// ExamOS — Prisma Schema
+// Database: Supabase PostgreSQL (Production-Ready)
+// Laws: Every table has id (cuid), createdAt, updatedAt, deletedAt?
+//        Index every FK. Composite indexes for common filter patterns.
+//        Partition large tables (audit_logs, health_surveys, mock_results).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  PARENT
+  COORDINATOR
+  ADMIN
+}
+
+enum ExamCategory {
+  UPSC
+  SSC
+  BANKING
+  RAILWAY
+  STATE_PSC
+  JEE
+  NEET
+  DEFENCE
+}
+
+enum HealthRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
+  ARCHIVED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  supabaseId    String    @unique
+  email         String    @unique
+  phone         String?   @unique
+  name          String
+  role          Role      @default(STUDENT)
+  languagePref  String    @default("en")
+  avatarUrl     String?
+  isVerified    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  studentProfile  StudentProfile?
+  teacherProfile  TeacherProfile?
+  parentProfile   ParentProfile?
+  sessions        WhiteboardSession[]
+  healthSurveys   HealthSurvey[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role, isActive])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model StudentProfile {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  targetExam      ExamCategory
+  targetYear      Int
+  category        String
+  studyHoursGoal  Int           @default(8)
+  currentStreak   Int           @default(0)
+  longestStreak   Int           @default(0)
+  xpPoints        Int           @default(0)
+  nationalRank    Int?
+  burnoutRisk     HealthRisk    @default(LOW)
+  lastActiveAt    DateTime      @default(now())
+  totalStudyMins  Int           @default(0)
+  parentLinked    Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockResults     MockResult[]
+  subjectScores   SubjectScore[]
+  studySessions   StudySession[]
+  parentLink      ParentChildLink[]
+
+  @@index([userId])
+  @@index([targetExam])
+  @@index([burnoutRisk])
+  @@index([xpPoints])
+  @@index([targetExam, xpPoints])
+  @@index([lastActiveAt])
+  @@index([nationalRank])
+  @@index([category])
+  @@index([deletedAt])
+  @@map("student_profiles")
+}
+
+model TeacherProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  bio           String?
+  specialization String?
+  rating        Float    @default(0.0)
+  earnings      Decimal  @default(0.0) @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([rating])
+  @@index([specialization])
+  @@index([deletedAt])
+  @@map("teacher_profiles")
+}
+
+model ParentProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  occupation   String?
+  city         String?
+  alertPrefs   Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children     ParentChildLink[]
+
+  @@index([userId])
+  @@index([city])
+  @@index([deletedAt])
+  @@map("parent_profiles")
+}
+
+model ParentChildLink {
+  id          String   @id @default(cuid())
+  parentId    String
+  studentId   String
+  isVerified  Boolean  @default(false)
+  linkedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  parent       ParentProfile   @relation(fields: [parentId], references: [id])
+  student      StudentProfile  @relation(fields: [studentId], references: [id])
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+  @@index([isVerified])
+  @@index([deletedAt])
+  @@map("parent_child_links")
+}
+
+model HealthSurvey {
+  id              String     @id @default(cuid())
+  userId          String
+  weekStart       DateTime
+  moodScore       Int
+  sleepScore      Int
+  anxietyScore    Int
+  motivationScore Int
+  overallScore    Float
+  riskLevel       HealthRisk
+  wantsCounselor  Boolean    @default(false)
+  notes           String?
+  aiResponse      String?
+  submittedAt     DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, weekStart])
+  @@index([riskLevel])
+  @@index([weekStart])
+  @@index([submittedAt])
+  @@index([deletedAt])
+  @@map("health_surveys")
+}
+
+model WhiteboardSession {
+  id            String         @id @default(cuid())
+  title         String
+  topic         String?
+  hostId        String
+  status        SessionStatus @default(ACTIVE)
+  canvasData    Json
+  maxMembers    Int            @default(6)
+  isPublic      Boolean        @default(false)
+  inviteCode    String         @unique @default(cuid())
+  botEnabled    Boolean        @default(true)
+  aiCorrections Int            @default(0)
+  startedAt     DateTime       @default(now())
+  endedAt       DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  host          User           @relation(fields: [hostId], references: [id])
+  members       WhiteboardMember[]
+  corrections   BotCorrection[]
+
+  @@index([hostId])
+  @@index([status])
+  @@index([inviteCode])
+  @@index([topic])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("whiteboard_sessions")
+}
+
+model WhiteboardMember {
+  id        String            @id @default(cuid())
+  sessionId String
+  userId    String?
+  joinedAt  DateTime          @default(now())
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  deletedAt DateTime?
+
+  session   WhiteboardSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("whiteboard_members")
+}
+
+model BotCorrection {
+  id        String            @id @default(cuid())
+  sessionId String
+  content   String
+  type      String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  deletedAt DateTime?
+
+  session   WhiteboardSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("bot_corrections")
+}
+
+model ExamCutoff {
+  id          String   @id @default(cuid())
+  examName    String
+  examYear    Int
+  stage       String
+  general     Float?
+  obc         Float?
+  sc          Float?
+  st          Float?
+  ews         Float?
+  pwd         Float?
+  totalMarks  Int
+  sourceUrl   String?
+  verifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  @@unique([examName, examYear, stage])
+  @@index([examName])
+  @@index([examYear])
+  @@index([stage])
+  @@index([examName, examYear])
+  @@index([deletedAt])
+  @@map("exam_cutoffs")
+}
+
+model MockResult {
+  id             String   @id @default(cuid())
+  studentId      String
+  testId         String
+  score          Float
+  totalMarks     Float
+  timeTakenSecs  Int
+  subjectBreakup Json
+  percentile     Float?
+  rank           Int?
+  attemptedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  student        StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([studentId, attemptedAt])
+  @@index([testId])
+  @@index([attemptedAt])
+  @@index([score])
+  @@index([deletedAt])
+  @@map("mock_results")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  entityType  String?
+  entityId    String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([userId, action, createdAt])
+  @@index([entityType, entityId])
+  @@index([deletedAt])
+  @@map("audit_logs")
+}
+
+model SubjectScore {
+  id        String   @id @default(cuid())
+  studentId String
+  subject   String
+  score     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([subject])
+  @@index([studentId, subject])
+  @@index([deletedAt])
+  @@map("subject_scores")
+}
+
+model StudySession {
+  id        String   @id @default(cuid())
+  studentId String
+  duration  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([studentId, createdAt])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("study_sessions")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("notifications")
+}

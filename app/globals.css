@@ -1,0 +1,24 @@
+﻿@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --color-parent-primary: #E88D2A;
+  --color-parent-light: #F5A623;
+  --color-parent-dark: #C67A1E;
+  --color-student-primary: #1A1A2E;
+  --color-student-secondary: #16213E;
+  --color-student-accent: #0F3460;
+  --color-teacher-primary: #1B3A5C;
+  --color-teacher-secondary: #2C5F8A;
+  --color-teacher-accent: #4A90D9;
+  --color-coordinator-bg: #0D1117;
+  --color-coordinator-card: #161B22;
+  --color-coordinator-border: #30363D;
+  --color-coordinator-text: #C9D1D9;
+  --color-coordinator-accent: #58A6FF;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+  --font-sans: 'Inter', 'Nunito', 'Poppins', system-ui, sans-serif;
+}

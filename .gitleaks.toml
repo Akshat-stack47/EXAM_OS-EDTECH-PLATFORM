@@ -1,0 +1,31 @@
+title = "ExamOS gitleaks configuration"
+
+[allowlist]
+  description = "Allowlist for false positives"
+  paths = [
+    '''.env.example''',
+    '''docs/''',
+    '''CHANGELOG.md''',
+    '''README.md''',
+    '''.github/''',
+  ]
+  commits = []
+  regexes = [
+    '''your[-_]?(api[-_]?)?key''',
+    '''your[-_]?secret''',
+    '''your[-_]?token''',
+    '''generate_with''',
+    '''EXAMPLE_API_KEY''',
+    '''sk[-_]?test''',
+    '''pk[-_]?test''',
+  ]
+
+[[rules]]
+  id = "examos-hardcoded-api-key"
+  description = "ExamOS API keys in code"
+  entropy = 3.5
+  regex = '''(?i)(examos[-_]?(api[-_]?)?key|EXAMOS_KEY)\s*=\s*['\"]([a-zA-Z0-9\-_]{20,})['\"]'''
+  keywords = [
+    "examos_key",
+    "examos_api_key",
+  ]

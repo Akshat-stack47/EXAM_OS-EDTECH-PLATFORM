@@ -1,0 +1,89 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "plugins": ["@typescript-eslint", "i18next"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variable",
+        "format": ["camelCase", "UPPER_CASE", "PascalCase"],
+        "leadingUnderscore": "allow"
+      },
+      {
+        "selector": "function",
+        "format": ["camelCase", "PascalCase"]
+      },
+      {
+        "selector": "typeLike",
+        "format": ["PascalCase"]
+      },
+      {
+        "selector": "enumMember",
+        "format": ["UPPER_CASE"]
+      },
+      {
+        "selector": "interface",
+        "format": ["PascalCase"],
+        "prefix": []
+      },
+      {
+        "selector": "variable",
+        "modifiers": ["const", "global"],
+        "types": ["boolean", "number", "string"],
+        "format": ["UPPER_CASE", "camelCase"]
+      }
+    ],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-empty": ["error", { "allowEmptyCatch": false }],
+    "import/no-cycle": "warn",
+    "import/no-relative-parent-imports": "off",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["../*"],
+            "message": "Use @/ alias instead of relative parent imports"
+          }
+        ]
+      }
+    ],
+    "i18next/no-literal-string": [
+      "warn",
+      {
+        "mode": "all",
+        "jsx": { "only": true },
+        "maxLength": 40
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["*.router.ts"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.object.name='t'][callee.property.name='procedure']",
+            "message": "Use base procedures (protectedProcedure, studentProcedure, etc.) from server/trpc instead of raw t.procedure"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.object.name=/^(prisma|db)$/][callee.property.name=/^(findMany|findFirst|findUnique|create|update|delete|upsert)$/]:not(:has(Property[key.name='select'])):not(:has(Property[key.name='include']))",
+            "message": "Golden Rule 5: All Prisma queries MUST use explicit 'select' or 'include'. No implicit lazy loading."
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": ["node_modules", ".next", "dist", "coverage", "tests/e2e", "tests/load"]
+}
