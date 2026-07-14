@@ -1,0 +1,46 @@
+name: 🔆 Keep Supabase Alive
+
+on:
+  schedule:
+    # Runs every 3 days — Supabase pauses after 7 days of inactivity on free tier
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  keepalive:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping via Supabase REST API
+        run: |
+          echo "🔆 Pinging Supabase to prevent project pause..."
+          # Ping the Supabase REST endpoint — works even without the app deployed
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://gfkqcrvusjcwevobhmhe.supabase.co/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            --max-time 30)
+          echo "Supabase REST status: $STATUS"
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "406" ]; then
+            echo "✅ Supabase is alive (status: $STATUS)"
+          else
+            echo "⚠️ Unexpected status: $STATUS"
+            exit 1
+          fi
+
+      - name: Ping App (if deployed)
+        continue-on-error: true
+        run: |
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            echo "🌐 Pinging deployed app..."
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "${{ secrets.APP_URL }}/api/health" --max-time 30)
+            echo "App health status: $STATUS"
+          else
+            echo "⏭️ APP_URL not set — skipping app ping"
+          fi
+
+      - name: Summary
+        run: |
+          echo "✅ Keep-alive complete at $(date)"
+          echo "Runs every 3 days to prevent Supabase free-tier pause (7-day inactivity limit)"

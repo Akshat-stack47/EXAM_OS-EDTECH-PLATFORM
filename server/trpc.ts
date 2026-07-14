@@ -5,33 +5,48 @@ import { ZodError } from 'zod'
 import { db } from '@/lib/db'
 import { AppError } from '@/lib/errors'
 import { ratelimit } from '@/lib/redis'
-import { createServerClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
+import { jwtVerify } from 'jose'
 
-type CreateContextOptions = {
-  userId: string | null
-  userRole: string | null
-}
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.SUPABASE_JWT_SECRET || 'default-secret-change-in-production'
+)
 
 type InnerContext = {
   db: typeof db
   userId: string | null
   userRole: string | null
-  supabase: Awaited<ReturnType<typeof createServerClient>>
 }
 
-export const createTRPCContext = async (opts: CreateNextContextOptions): Promise<InnerContext> => {
-  const { req } = opts
-  const supabase = await createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
+// ─── Read & verify our custom JWT from the sb-access-token cookie ────────────
+async function getUserFromCookie(): Promise<{ userId: string; userRole: string } | null> {
+  try {
+    const cookieStore = await cookies()
+    // Support both cookie names for backwards compat
+    const token =
+      cookieStore.get('sb-access-token')?.value ??
+      cookieStore.get('sb-auth-token')?.value
 
-  const userId = session?.user?.id ?? (req.headers['x-user-id'] as string | undefined)
-  const userRole = session?.user?.user_metadata?.role ?? (req.headers['x-user-role'] as string | undefined)
+    if (!token) return null
 
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    const userId   = (payload.sub ?? (payload as any).userId) as string | undefined
+    const userRole = (payload.role ?? (payload as any).userRole) as string | undefined
+
+    if (!userId || !userRole) return null
+    return { userId, userRole }
+  } catch {
+    // Token missing, expired, or invalid — treat as unauthenticated
+    return null
+  }
+}
+
+export const createTRPCContext = async (_opts: any): Promise<InnerContext> => {
+  const user = await getUserFromCookie()
   return {
     db,
-    supabase,
-    userId: userId ?? null,
-    userRole: userRole ?? null,
+    userId:   user?.userId   ?? null,
+    userRole: user?.userRole ?? null,
   }
 }
 

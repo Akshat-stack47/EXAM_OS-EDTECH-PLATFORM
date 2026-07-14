@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 
 export const teacherService = {
-  async getProfile(userId: string) {
+  async getDashboard(userId: string) {
     const profile = await db.teacherProfile.findUnique({
       where: { userId },
       include: {
@@ -13,7 +13,35 @@ export const teacherService = {
 
     if (!profile) throw new Error('TEACHER_PROFILE_NOT_FOUND')
 
-    const studentCount = await db.studentProfile.count()
+    const [studentCount, atRiskStudents, recentStudents] = await Promise.all([
+      db.studentProfile.count({ where: { deletedAt: null } }),
+      db.studentProfile.findMany({
+        where: { burnoutRisk: { in: ['MEDIUM', 'HIGH', 'CRITICAL'] }, deletedAt: null },
+        take: 10,
+        select: {
+          id: true,
+          targetExam: true,
+          currentStreak: true,
+          burnoutRisk: true,
+          nationalRank: true,
+          user: { select: { name: true } },
+          subjectScores: { orderBy: { score: 'asc' }, take: 1 },
+        },
+      }),
+      db.studentProfile.findMany({
+        where: { deletedAt: null },
+        orderBy: { lastActiveAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          targetExam: true,
+          nationalRank: true,
+          burnoutRisk: true,
+          user: { select: { name: true } },
+          subjectScores: { orderBy: { score: 'desc' }, take: 1 },
+        },
+      }),
+    ])
 
     return {
       name: profile.user.name,
@@ -24,6 +52,34 @@ export const teacherService = {
       rating: profile.rating,
       earnings: Number(profile.earnings),
       studentCount,
+      atRiskStudents: atRiskStudents.map((s) => ({
+        id: s.id,
+        name: s.user.name,
+        exam: s.targetExam,
+        burnoutRisk: s.burnoutRisk,
+        nationalRank: s.nationalRank,
+        weakestSubject: s.subjectScores[0]?.subject ?? null,
+        weakestScore: s.subjectScores[0]?.score ?? null,
+      })),
+      recentStudents: recentStudents.map((s) => ({
+        id: s.id,
+        name: s.user.name,
+        exam: s.targetExam,
+        burnoutRisk: s.burnoutRisk,
+        nationalRank: s.nationalRank,
+        topScore: s.subjectScores[0]?.score ?? null,
+      })),
     }
+  },
+
+  async getProfile(userId: string) {
+    return (await this.getDashboard(userId))
+  },
+
+  async updateProfile(userId: string, data: { bio?: string; specialization?: string }) {
+    return db.teacherProfile.update({
+      where: { userId },
+      data,
+    })
   },
 }

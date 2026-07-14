@@ -47,7 +47,7 @@ export function SearchResultsView({
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <Search className="size-12 mb-4 opacity-20" />
-        <p className="text-lg font-medium">Search across exams, students, whiteboards & more</p>
+        <p className="text-lg font-medium">Search across exams, students, whiteboards &amp; more</p>
         <p className="text-sm mt-1">Type at least 2 characters to start searching</p>
       </div>
     )

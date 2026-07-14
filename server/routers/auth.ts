@@ -34,7 +34,10 @@ export const authRouter = createTRPCRouter({
     .input(z.object({
       email: z.string().email(),
       name: z.string().min(2),
-      role: z.enum(['STUDENT', 'PARENT', 'TEACHER']),
+      role: z.enum(['STUDENT', 'PARENT', 'TEACHER', 'COORDINATOR']),
+      targetExam: z.enum(['UPSC', 'SSC', 'BANKING', 'RAILWAY', 'STATE_PSC', 'JEE', 'NEET', 'DEFENCE']).optional(),
+      targetYear: z.number().min(2025).max(2035).optional(),
+      category: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       return authService.register(input)

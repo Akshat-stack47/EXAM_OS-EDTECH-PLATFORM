@@ -1,54 +1,225 @@
-import { config } from 'dotenv'
-import { resolve } from 'path'
-config({ path: resolve('C:\\Users\\ashua\\OneDrive\\ドキュメント\\Desktop\\Exam_Os\\.env') })
+/**
+ * ExamOS — Database Seed Script
+ * Creates test accounts for all 4 roles so you can test the full app
+ *
+ * Usage: npx tsx --env-file=.env prisma/seed.ts
+ *        (or: npm run seed)
+ */
 
-import { PrismaClient } from '@prisma/client'
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { db } from '../lib/db'
+import { SignJWT } from 'jose'
 
-const url = new URL(process.env.DATABASE_URL!)
-const pool = new Pool({
-  host: url.hostname,
-  port: parseInt(url.port),
-  database: url.pathname.slice(1),
-  user: decodeURIComponent(url.username),
-  password: decodeURIComponent(url.password),
-  ssl: { rejectUnauthorized: false },
-})
-const adapter = new PrismaPg(pool)
-const db = new PrismaClient({ adapter })
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.SUPABASE_JWT_SECRET || 'examos-local-dev-jwt-secret-change-in-production'
+)
 
-const EXAMS = [
-  { examName: 'UPSC Civil Services', examYear: 2024, stage: 'Prelims', general: 98.5, obc: 95.2, sc: 87.8, st: 82.4, ews: 91.3, pwd: 72.1, totalMarks: 200 },
-  { examName: 'UPSC Civil Services', examYear: 2024, stage: 'Mains', general: 752, obc: 720, sc: 698, st: 675, ews: 710, pwd: 645, totalMarks: 1750 },
-  { examName: 'UPSC Civil Services', examYear: 2023, stage: 'Prelims', general: 95.2, obc: 91.8, sc: 84.5, st: 79.2, ews: 88.4, pwd: 68.9, totalMarks: 200 },
-  { examName: 'SSC CGL', examYear: 2024, stage: 'Tier 1', general: 148.5, obc: 141.2, sc: 132.8, st: 126.4, ews: 137.6, pwd: 112.3, totalMarks: 200 },
-  { examName: 'SSC CGL', examYear: 2023, stage: 'Tier 1', general: 145.2, obc: 138.6, sc: 130.1, st: 124.8, ews: 134.9, pwd: 108.7, totalMarks: 200 },
-  { examName: 'IBPS PO', examYear: 2024, stage: 'Prelims', general: 58.5, obc: 55.2, sc: 48.8, st: 44.6, ews: 52.4, pwd: 38.1, totalMarks: 100 },
-  { examName: 'IBPS PO', examYear: 2023, stage: 'Prelims', general: 56.8, obc: 53.4, sc: 46.2, st: 42.1, ews: 50.7, pwd: 35.9, totalMarks: 100 },
-  { examName: 'IBPS Clerk', examYear: 2024, stage: 'Prelims', general: 72.5, obc: 68.3, sc: 61.8, st: 57.2, ews: 65.4, pwd: 48.6, totalMarks: 100 },
-  { examName: 'RRB NTPC', examYear: 2024, stage: 'CBT 1', general: 65.3, obc: 61.8, sc: 55.4, st: 51.2, ews: 59.6, pwd: 42.8, totalMarks: 100 },
-  { examName: 'UPSC CAPF', examYear: 2024, stage: 'Written', general: 285, obc: 272, sc: 258, st: 245, ews: 264, pwd: 228, totalMarks: 500 },
-  { examName: 'JEE Advanced', examYear: 2024, stage: 'Final', general: 98, obc: 79, sc: 58, st: 44, ews: 85, pwd: 38, totalMarks: 360 },
-  { examName: 'NEET UG', examYear: 2024, stage: 'Final', general: 720, obc: 680, sc: 640, st: 615, ews: 695, pwd: 580, totalMarks: 720 },
-  { examName: 'NEET UG', examYear: 2023, stage: 'Final', general: 715, obc: 672, sc: 635, st: 608, ews: 688, pwd: 572, totalMarks: 720 },
-  { examName: 'UPSC EPFO', examYear: 2024, stage: 'Prelims', general: 82.5, obc: 78.4, sc: 72.1, st: 68.5, ews: 75.8, pwd: 58.2, totalMarks: 150 },
-]
+async function createToken(userId: string, role: string) {
+  return new SignJWT({ role, sub: userId })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(JWT_SECRET)
+}
 
 async function main() {
-  console.log('Seeding exam cutoff data...')
+  console.log('🌱 Seeding ExamOS database...\n')
 
-  for (const exam of EXAMS) {
-    await db.examCutoff.upsert({
-      where: { examName_examYear_stage: { examName: exam.examName, examYear: exam.examYear, stage: exam.stage } },
-      update: exam,
-      create: exam,
+  // ── Clean up existing seed accounts ──────────────────────────────
+  const seedEmails = ['student@examos.in', 'parent@examos.in', 'teacher@examos.in', 'coordinator@examos.in']
+  for (const email of seedEmails) {
+    const user = await db.user.findUnique({ where: { email } })
+    if (user) {
+      // Delete dependent records first
+      await db.studySession.deleteMany({ where: { student: { userId: user.id } } })
+      await db.subjectScore.deleteMany({ where: { student: { userId: user.id } } })
+      await db.mockResult.deleteMany({ where: { student: { userId: user.id } } })
+      await db.notification.deleteMany({ where: { userId: user.id } })
+      await db.auditLog.deleteMany({ where: { userId: user.id } })
+      await db.studentProfile.deleteMany({ where: { userId: user.id } })
+      await db.teacherProfile.deleteMany({ where: { userId: user.id } })
+      await db.parentProfile.deleteMany({ where: { userId: user.id } })
+      await db.user.delete({ where: { id: user.id } })
+    }
+  }
+
+  // ── 1. Student ────────────────────────────────────────────────────
+  const student = await db.user.create({
+    data: {
+      email: 'student@examos.in',
+      name: 'Riya Sharma',
+      role: 'STUDENT',
+      supabaseId: `sb-student-seed-${Date.now()}`,
+      isVerified: true,
+    },
+  })
+  const studentProfile = await db.studentProfile.create({
+    data: {
+      userId: student.id,
+      targetExam: 'UPSC',
+      targetYear: 2026,
+      category: 'general',
+      currentStreak: 14,
+      longestStreak: 21,
+      xpPoints: 4250,
+      nationalRank: 1847,
+      burnoutRisk: 'LOW',
+      totalStudyMins: 4320,
+      studyHoursGoal: 8,
+    },
+  })
+
+  // Subject scores
+  const subjects = [
+    { subject: 'History', score: 78 },
+    { subject: 'Polity', score: 82 },
+    { subject: 'Geography', score: 65 },
+    { subject: 'Economy', score: 71 },
+    { subject: 'Science & Tech', score: 88 },
+    { subject: 'Current Affairs', score: 74 },
+    { subject: 'Ethics', score: 69 },
+    { subject: 'Environment', score: 76 },
+  ]
+  for (const s of subjects) {
+    await db.subjectScore.create({ data: { studentId: studentProfile.id, ...s } })
+  }
+
+  // Study sessions (last 10 days)
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i)
+    await db.studySession.create({
+      data: { studentId: studentProfile.id, duration: 45 + Math.floor(Math.random() * 90), createdAt: d },
     })
   }
 
-  console.log(`Seeded ${EXAMS.length} exam cutoff records`)
+  // Mock results
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i * 3)
+    await db.mockResult.create({
+      data: {
+        studentId: studentProfile.id,
+        testId: `mock-${i + 1}`,
+        score: 120 + Math.floor(Math.random() * 60),
+        totalMarks: 200,
+        timeTakenSecs: 5400 + Math.floor(Math.random() * 1800),
+        percentile: 70 + Math.random() * 25,
+        rank: 1800 + Math.floor(Math.random() * 500),
+        subjectBreakup: { history: 24, polity: 28, geography: 22, economy: 24, science: 22 },
+        attemptedAt: d,
+      },
+    })
+  }
+
+  // Health survey
+  await db.healthSurvey.create({
+    data: {
+      userId: student.id,
+      weekStart: new Date(Date.now() - 7 * 24 * 3600 * 1000),
+      moodScore: 8,
+      sleepScore: 7,
+      anxietyScore: 4,
+      motivationScore: 9,
+      overallScore: 7.5,
+      riskLevel: 'LOW',
+      wantsCounselor: false,
+    },
+  })
+
+  const studentToken = await createToken(student.id, 'STUDENT')
+  console.log(`✅ Student: student@examos.in`)
+  console.log(`   Token: ${studentToken.slice(0, 40)}...\n`)
+
+  // ── 2. Teacher ────────────────────────────────────────────────────
+  const teacher = await db.user.create({
+    data: {
+      email: 'teacher@examos.in',
+      name: 'Dr. Amit Verma',
+      role: 'TEACHER',
+      supabaseId: `sb-teacher-seed-${Date.now()}`,
+      isVerified: true,
+    },
+  })
+  await db.teacherProfile.create({
+    data: {
+      userId: teacher.id,
+      bio: 'Experienced UPSC mentor with 10+ years of guiding aspirants to top ranks. Ex-IAS officer.',
+      specialization: 'History & Polity',
+      rating: 4.8,
+      earnings: 48000,
+    },
+  })
+
+  // Add some at-risk students for the teacher dashboard
+  const atRiskEmails = ['risk1@examos.in', 'risk2@examos.in']
+  for (let i = 0; i < atRiskEmails.length; i++) {
+    const u = await db.user.create({
+      data: { email: atRiskEmails[i], name: `At-Risk Student ${i + 1}`, role: 'STUDENT', supabaseId: `sb-risk-${i}-${Date.now()}`, isVerified: true },
+    })
+    const sp = await db.studentProfile.create({
+      data: { userId: u.id, targetExam: 'UPSC', targetYear: 2026, category: 'general', burnoutRisk: i === 0 ? 'HIGH' : 'MEDIUM', nationalRank: 9000 + i * 500, currentStreak: 1 },
+    })
+    await db.subjectScore.create({ data: { studentId: sp.id, subject: 'History', score: 45 + i * 5 } })
+  }
+
+  const teacherToken = await createToken(teacher.id, 'TEACHER')
+  console.log(`✅ Teacher: teacher@examos.in`)
+  console.log(`   Token: ${teacherToken.slice(0, 40)}...\n`)
+
+  // ── 3. Parent ─────────────────────────────────────────────────────
+  const parent = await db.user.create({
+    data: {
+      email: 'parent@examos.in',
+      name: 'Anita Sharma',
+      role: 'PARENT',
+      supabaseId: `sb-parent-seed-${Date.now()}`,
+      isVerified: true,
+    },
+  })
+  const parentProfile = await db.parentProfile.create({
+    data: { userId: parent.id, alertPrefs: { email: true, sms: false }, city: 'Delhi', occupation: 'Teacher' },
+  })
+
+  // Link student to parent
+  await db.parentChildLink.create({
+    data: { parentId: parentProfile.id, studentId: studentProfile.id, isVerified: true },
+  })
+
+  // Add some alerts
+  await db.notification.createMany({
+    data: [
+      { userId: parent.id, title: 'Study streak achieved!', body: 'Riya has completed 14 consecutive study days. Keep it up!', read: false },
+      { userId: parent.id, title: 'Mock test result available', body: 'Riya scored 78% in the latest UPSC Prelims mock.', read: false },
+      { userId: parent.id, title: 'Health check-in submitted', body: 'Riya submitted her weekly health survey. Risk: LOW.', read: true },
+    ],
+  })
+
+  const parentToken = await createToken(parent.id, 'PARENT')
+  console.log(`✅ Parent: parent@examos.in`)
+  console.log(`   Token: ${parentToken.slice(0, 40)}...\n`)
+
+  // ── 4. Coordinator ───────────────────────────────────────────────
+  const coordinator = await db.user.create({
+    data: {
+      email: 'coordinator@examos.in',
+      name: 'ExamOS Admin',
+      role: 'COORDINATOR',
+      supabaseId: `sb-coord-seed-${Date.now()}`,
+      isVerified: true,
+    },
+  })
+
+  const coordToken = await createToken(coordinator.id, 'COORDINATOR')
+  console.log(`✅ Coordinator: coordinator@examos.in`)
+  console.log(`   Token: ${coordToken.slice(0, 40)}...\n`)
+
+  console.log('─'.repeat(60))
+  console.log(`\n🎉 Seed complete! Login with any of these emails via OTP.`)
+  console.log(`   The OTP will be printed in the server console when you request it.\n`)
+  console.log(`📋 Quick Copy Tokens (paste as sb-access-token cookie for testing):`)
+  console.log(`   Student:     ${studentToken}`)
+  console.log(`   Teacher:     ${teacherToken}`)
+  console.log(`   Parent:      ${parentToken}`)
+  console.log(`   Coordinator: ${coordToken}`)
 }
 
 main()
-  .catch(console.error)
-  .finally(() => db.$disconnect())
+  .catch((e) => { console.error('❌ Seed failed:', e); process.exit(1) })

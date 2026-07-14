@@ -41,10 +41,23 @@ export default function HealthSurveyPageClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6 max-w-3xl mx-auto">
-      <Link href="/student/dashboard" className="text-sm text-blue-600 hover:underline">&larr; Back to Dashboard</Link>
+    <div style={{ fontFamily: "'Inter',system-ui,sans-serif", background: '#0D0D1A', minHeight: '100vh', color: '#fff' }}>
+      {/* Header nav */}
+      <div style={{ background: 'rgba(13,13,26,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 2rem', display: 'flex', alignItems: 'center', height: 64, gap: '1rem' }}>
+          <Link href="/student/dashboard" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: '0.9rem', transition: 'color 0.15s' }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = '#fff'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.4)'}>
+            ← Dashboard
+          </Link>
+          <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)' }} />
+          <span style={{ fontSize: '1.3rem' }}>💚</span>
+          <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Health & Wellness</span>
+        </div>
+      </div>
 
-      <div className="mt-4 space-y-6">
+      <div className="p-4 md:p-6 max-w-3xl mx-auto">
+
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Weekly Health Check</CardTitle>

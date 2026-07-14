@@ -7,10 +7,10 @@ import { coordinatorRouter } from './coordinator'
 import { examRouter } from './exam'
 import { aiRouter } from './ai'
 import { healthRouter } from './health'
-import { whiteboardRouter } from './whiteboard'
 import { paymentRouter } from './payment'
 import { notificationRouter } from './notification'
 import { searchRouter } from './search.router'
+import { whiteboardRouter } from './whiteboard'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -21,10 +21,10 @@ export const appRouter = createTRPCRouter({
   exam: examRouter,
   ai: aiRouter,
   health: healthRouter,
-  whiteboard: whiteboardRouter,
   payment: paymentRouter,
   notification: notificationRouter,
   search: searchRouter,
+  whiteboard: whiteboardRouter,
 })
 
 export type AppRouter = typeof appRouter

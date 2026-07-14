@@ -5,7 +5,7 @@ export const examService = {
     const where = examName ? { examName } : {}
     return db.examCutoff.findMany({
       where,
-      select: { id: true, examName: true, examYear: true, stage: true, general: true, obc: true, sc: true, st: true, ews: true, pwd: true },
+      select: { id: true, examName: true, examYear: true, stage: true, general: true, obc: true, sc: true, st: true, ews: true, pwd: true, totalMarks: true },
       orderBy: [{ examYear: 'desc' }, { examName: 'asc' }],
       take: 100,
     })
@@ -14,7 +14,7 @@ export const examService = {
   async getByName(examName: string) {
     return db.examCutoff.findMany({
       where: { examName },
-      select: { id: true, examName: true, examYear: true, stage: true, general: true, obc: true, sc: true, st: true, ews: true, pwd: true },
+      select: { id: true, examName: true, examYear: true, stage: true, general: true, obc: true, sc: true, st: true, ews: true, pwd: true, totalMarks: true },
       orderBy: { examYear: 'desc' },
     })
   },

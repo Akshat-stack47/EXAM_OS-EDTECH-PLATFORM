@@ -1,24 +1,41 @@
 import { Queue, Worker, type Job } from 'bullmq'
 import { searchService } from '@/server/services/search.service'
 
-const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD || undefined,
-  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+// Build the connection config lazily to avoid crashing during Next.js build
+// when no Redis server is running locally.
+function getConnection() {
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || undefined,
+    tls: process.env.REDIS_TLS === 'true' ? ({} as any) : undefined,
+    // Prevent BullMQ from crashing the build worker: don't eagerly connect
+    lazyConnect: true,
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: 0,
+    connectTimeout: 2000,
+  }
 }
 
 const QUEUE_NAME = 'search-sync'
 
-export const searchSyncQueue = new Queue(QUEUE_NAME, {
-  connection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 2000 },
-    removeOnComplete: { age: 3600 },
-    removeOnFail: { age: 86400 },
-  },
-})
+// Lazy singleton — created only when first enqueue/worker call is made,
+// NOT at module evaluation time (which would crash the Next.js build worker).
+let _queue: Queue | null = null
+function getQueue(): Queue {
+  if (!_queue) {
+    _queue = new Queue(QUEUE_NAME, {
+      connection: getConnection(),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: { age: 3600 },
+        removeOnFail: { age: 86400 },
+      },
+    })
+  }
+  return _queue
+}
 
 export type SyncJobPayload = {
   entity: 'exams' | 'students' | 'whiteboards' | 'health_surveys'
@@ -31,15 +48,23 @@ export type ReindexJobPayload = {
 }
 
 export async function enqueueSearchSync(payload: SyncJobPayload) {
-  await searchSyncQueue.add('sync-document', payload, {
-    jobId: `${payload.entity}:${payload.action}:${payload.id}`,
-  })
+  try {
+    await getQueue().add('sync-document', payload, {
+      jobId: `${payload.entity}:${payload.action}:${payload.id}`,
+    })
+  } catch {
+    // Silently skip if Redis is unavailable — search sync is non-critical
+  }
 }
 
 export async function enqueueReindex(payload: ReindexJobPayload) {
-  await searchSyncQueue.add('reindex', payload, {
-    jobId: `reindex:${payload.entity}:${Date.now()}`,
-  })
+  try {
+    await getQueue().add('reindex', payload, {
+      jobId: `reindex:${payload.entity}:${Date.now()}`,
+    })
+  } catch {
+    // Silently skip if Redis is unavailable
+  }
 }
 
 const entityReindexMap: Record<string, () => Promise<any>> = {
@@ -65,7 +90,7 @@ export function startSearchSyncWorker() {
         }
       }
     },
-    { connection, concurrency: 5 },
+    { connection: getConnection(), concurrency: 5 },
   )
 
   worker.on('completed', (job) => {

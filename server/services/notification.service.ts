@@ -10,9 +10,23 @@ export const notificationService = {
     })
   },
 
+  async unreadCount(userId: string) {
+    const count = await db.notification.count({
+      where: { userId, read: false },
+    })
+    return { count }
+  },
+
   async markRead(notificationId: string) {
     return db.notification.update({
       where: { id: notificationId },
+      data: { read: true },
+    })
+  },
+
+  async markAllRead(userId: string) {
+    return db.notification.updateMany({
+      where: { userId, read: false },
       data: { read: true },
     })
   },

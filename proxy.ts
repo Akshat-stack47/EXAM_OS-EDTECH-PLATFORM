@@ -9,12 +9,25 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.SUPABASE_JWT_SECRET || 'default-secret-change-in-production',
 )
 
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(100, '1 m'),
-  analytics: false,
-  prefix: 'ratelimit:proxy',
-})
+const noopRatelimit = {
+  limit: async (_id: string) => ({ success: true, limit: 999, remaining: 999, reset: 0 }),
+}
+
+const ratelimit = (() => {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return noopRatelimit
+  }
+  try {
+    return new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(100, '1 m'),
+      analytics: false,
+      prefix: 'ratelimit:proxy',
+    })
+  } catch {
+    return noopRatelimit
+  }
+})()
 
 const ROLE_ROUTES: Record<string, string[]> = {
   PARENT: ['/parent'],
@@ -24,7 +37,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
 }
 
 const PUBLIC_ROUTES = ['/', '/login', '/register', '/onboarding', '/maintenance', '/exams', '/blog']
-const PUBLIC_API_ROUTES = ['/api/health', '/api/webhooks']
+const PUBLIC_API_ROUTES = ['/api/health', '/api/webhooks', '/api/seed', '/api/trpc', '/api/migrate']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl

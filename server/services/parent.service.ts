@@ -10,9 +10,17 @@ export const parentService = {
           include: {
             student: {
               include: {
-                user: { select: { name: true } },
+                user: {
+                  select: {
+                    name: true,
+                    healthSurveys: {
+                      orderBy: { createdAt: 'desc' },
+                      take: 1,
+                      select: { id: true, riskLevel: true, overallScore: true, moodScore: true, sleepScore: true, wantsCounselor: true, createdAt: true },
+                    },
+                  },
+                },
                 subjectScores: { orderBy: { score: 'desc' as const }, take: 6 },
-                healthSurveys: { orderBy: { createdAt: 'desc' as const }, take: 1 },
               },
             },
           },
@@ -36,7 +44,7 @@ export const parentService = {
         subject: s.subject,
         score: s.score,
       })),
-      latestHealth: link.student.healthSurveys?.[0] || null,
+      latestHealth: link.student.user.healthSurveys?.[0] || null,
       isVerified: link.isVerified,
     }))
 

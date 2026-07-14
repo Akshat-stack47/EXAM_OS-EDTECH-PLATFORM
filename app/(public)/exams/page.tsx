@@ -5,8 +5,8 @@ export const revalidate = 86400
 
 export default function ExamsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
+    <div style={{ minHeight: '100vh', background: '#0D0D1A', color: '#F8F8FF', fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem' }}>
         <Suspense fallback={<ExamsSkeleton />}>
           <ExamsClient />
         </Suspense>
@@ -17,15 +17,15 @@ export default function ExamsPage() {
 
 function ExamsSkeleton() {
   return (
-    <div className="animate-pulse space-y-6">
-      <div className="h-8 bg-gray-200 rounded w-48" />
-      <div className="flex gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ height: 32, width: 200, background: 'rgba(255,255,255,0.08)', borderRadius: 8 }} />
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-8 bg-gray-200 rounded-full w-24" />
+          <div key={i} style={{ height: 32, width: 90, background: 'rgba(255,255,255,0.08)', borderRadius: 100 }} />
         ))}
       </div>
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="h-32 bg-gray-200 rounded-xl" />
+        <div key={i} style={{ height: 100, background: 'rgba(255,255,255,0.04)', borderRadius: 16 }} />
       ))}
     </div>
   )
