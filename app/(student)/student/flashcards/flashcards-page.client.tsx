@@ -253,7 +253,7 @@ export default function FlashcardsClient() {
         </div>
         <div style={{ fontSize:'.72rem', color:'rgba(255,255,255,.3)', fontWeight:700, display:'flex', gap:'.65rem' }}>
           {[['😊', sessionStats.easy, '#22C55E'],['👍', sessionStats.good, '#0EA5E9'],['😅', sessionStats.hard, '#F59E0B'],['🔁', sessionStats.again, '#EF4444']].map(([ic,n,c]) => (
-            <span key={ic as string} style={{ color: n > 0 ? c as string : 'rgba(255,255,255,.2)' }}>{ic} {n as number}</span>
+            <span key={ic as string} style={{ color: Number(n) > 0 ? c as string : 'rgba(255,255,255,.2)' }}>{ic} {n as number}</span>
           ))}
         </div>
       </div>
