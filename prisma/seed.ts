@@ -87,7 +87,7 @@ async function main() {
   for (let i = 0; i < 10; i++) {
     const d = new Date(); d.setDate(d.getDate() - i)
     await db.studySession.create({
-      data: { studentId: studentProfile.id, duration: 45 + Math.floor(Math.random() * 90), createdAt: d, subject: 'Polity', examTag: 'UPSC' },
+      data: { studentId: studentProfile.id, duration: 45 + Math.floor(Math.random() * 90), createdAt: d },
     })
   }
 

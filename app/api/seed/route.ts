@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       // Study sessions
       for (let i = 0; i < 10; i++) {
         const d = new Date(); d.setDate(d.getDate() - i)
-        await db.studySession.create({ data: { studentId: studentProfile.id, duration: 45 + i * 5, createdAt: d, subject: 'Polity', examTag: 'UPSC' } })
+        await db.studySession.create({ data: { studentId: studentProfile.id, duration: 45 + i * 5, createdAt: d } })
       }
 
       // Mock results
