@@ -43,10 +43,5 @@
   "rewrites": [
     { "source": "/health", "destination": "/api/health" },
     { "source": "/maintenance", "destination": "/maintenance" }
-  ],
-  "functions": {
-    "app/api/**/route.ts": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
