@@ -142,11 +142,47 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer style={{ padding: '2rem', borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-        ExamOS v2.0 — Built for India. For 200M+ Aspirants. Made with ❤️
-        <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.2)' }}>
-          <Link href="/login" style={{ color: 'inherit' }}>Login</Link> · <Link href="/register" style={{ color: 'inherit' }}>Register</Link> · <Link href="/exams" style={{ color: 'inherit' }}>Exams</Link>
-        </span>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '3rem 2rem 2rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+        <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '2rem', marginBottom: '2.5rem' }}>
+            {/* Brand */}
+            <div>
+              <div style={{ display:'flex', alignItems:'center', gap:'.4rem', marginBottom:'.75rem' }}>
+                <span style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,#7C3AED,#06B6D4)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:13 }}>⚡</span>
+                <span style={{ fontWeight:900, fontSize:'1rem', color:'#fff' }}>Exam<span style={{ color:'#A78BFA' }}>OS</span></span>
+              </div>
+              <p style={{ fontSize:'.78rem', lineHeight:1.7, color:'rgba(255,255,255,.35)' }}>India's Unified Exam Intelligence Platform. Built for 200M+ aspirants.</p>
+            </div>
+            {/* Product */}
+            <div>
+              <div style={{ fontWeight:800, color:'rgba(255,255,255,.65)', fontSize:'.8rem', marginBottom:'.85rem', textTransform:'uppercase', letterSpacing:'.06em' }}>Platform</div>
+              {[['Student Dashboard','/student/dashboard'],['Mock Tests','/student/mock-tests'],['Flashcards','/student/flashcards'],['Exam Calendar','/student/calendar'],['PYQ Browser','/student/pyq'],['Subscription','/student/subscription']].map(([l,h]) => (
+                <div key={l} style={{ marginBottom:'.45rem' }}><Link href={h} style={{ color:'rgba(255,255,255,.35)', textDecoration:'none', fontSize:'.8rem', transition:'color .15s' }}>{l}</Link></div>
+              ))}
+            </div>
+            {/* Company */}
+            <div>
+              <div style={{ fontWeight:800, color:'rgba(255,255,255,.65)', fontSize:'.8rem', marginBottom:'.85rem', textTransform:'uppercase', letterSpacing:'.06em' }}>Company</div>
+              {[['About Us','/about'],['Contact Us','/contact'],['Teacher Dashboard','/teacher/dashboard'],['Coordinator Panel','/coordinator/dashboard'],['For Parents','/parent/dashboard']].map(([l,h]) => (
+                <div key={l} style={{ marginBottom:'.45rem' }}><Link href={h} style={{ color:'rgba(255,255,255,.35)', textDecoration:'none', fontSize:'.8rem' }}>{l}</Link></div>
+              ))}
+            </div>
+            {/* Legal */}
+            <div>
+              <div style={{ fontWeight:800, color:'rgba(255,255,255,.65)', fontSize:'.8rem', marginBottom:'.85rem', textTransform:'uppercase', letterSpacing:'.06em' }}>Legal</div>
+              {[['Privacy Policy','/privacy-policy'],['Terms of Service','/terms-of-service'],['Contact / Support','/contact'],['DPDP Act Compliance','/privacy-policy']].map(([l,h]) => (
+                <div key={l} style={{ marginBottom:'.45rem' }}><Link href={h} style={{ color:'rgba(255,255,255,.35)', textDecoration:'none', fontSize:'.8rem' }}>{l}</Link></div>
+              ))}
+            </div>
+          </div>
+          <div style={{ borderTop:'1px solid rgba(255,255,255,.06)', paddingTop:'1.5rem', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'1rem' }}>
+            <span style={{ fontSize:'.75rem', color:'rgba(255,255,255,.2)' }}>© 2026 ExamOS Technologies Pvt. Ltd. · New Delhi, India · Made with ❤️ for every aspirant</span>
+            <div style={{ display:'flex', gap:'1rem' }}>
+              <Link href="/login" style={{ color:'rgba(255,255,255,.3)', textDecoration:'none', fontSize:'.75rem' }}>Sign In</Link>
+              <Link href="/register" style={{ color:'#A78BFA', textDecoration:'none', fontSize:'.75rem', fontWeight:700 }}>Get Started →</Link>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   )

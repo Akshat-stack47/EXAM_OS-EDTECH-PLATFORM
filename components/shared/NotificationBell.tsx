@@ -85,6 +85,12 @@ export const NotificationBell = () => {
               ))
             )}
           </div>
+          <div style={{ padding: '0.6rem 1rem', borderTop: '1px solid rgba(255,255,255,0.07)', textAlign: 'center' }}>
+            <a href="/student/notifications" onClick={() => setOpen(false)}
+              style={{ fontSize: '0.78rem', color: '#A78BFA', fontWeight: 700, textDecoration: 'none' }}>
+              View all notifications →
+            </a>
+          </div>
         </div>
       )}
     </div>
