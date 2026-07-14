@@ -45,7 +45,7 @@
     { "source": "/maintenance", "destination": "/maintenance" }
   ],
   "functions": {
-    "api/**/*.ts": {
+    "app/api/**/route.ts": {
       "maxDuration": 30
     }
   }
