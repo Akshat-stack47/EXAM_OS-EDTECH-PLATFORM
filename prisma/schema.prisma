@@ -1,15 +1,1098 @@
-// ExamOS — Prisma Schema
-// Database: Supabase PostgreSQL (Production-Ready)
-// Laws: Every table has id (cuid), createdAt, updatedAt, deletedAt?
-//        Index every FK. Composite indexes for common filter patterns.
-//        Partition large tables (audit_logs, health_surveys, mock_results).
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id                   String                @id @default(cuid())
+  supabaseId           String                @unique
+  email                String                @unique
+  phone                String?               @unique
+  name                 String
+  role                 Role                  @default(STUDENT)
+  languagePref         String                @default("hi")
+  avatarUrl            String?
+  isVerified           Boolean               @default(false)
+  isActive             Boolean               @default(true)
+  lastLoginAt          DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  deletedAt            DateTime?
+  auditLogs            AuditLog[]
+  coaching_institutes  coaching_institutes[]
+  coordinator_profiles coordinator_profiles?
+  document_vault       document_vault[]
+  free_resources       free_resources[]
+  healthSurveys        HealthSurvey[]
+  parentProfile        ParentProfile?
+  studentProfile       StudentProfile?
+  teacherProfile       TeacherProfile?
+
+  @@index([email])
+  @@index([phone])
+  @@index([role, isActive])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model StudentProfile {
+  id                     String                   @id @default(cuid())
+  userId                 String                   @unique
+  instituteId            String?
+  targetExam             ExamCategory
+  targetYear             Int
+  category               String
+  subscriptionTier       SubscriptionTier         @default(FREE)
+  subscriptionEnd        DateTime?
+  studyHoursGoal         Int                      @default(8)
+  totalStudyMins         Int                      @default(0)
+  totalPYQsSolved        Int                      @default(0)
+  totalMocksTaken        Int                      @default(0)
+  currentStreak          Int                      @default(0)
+  longestStreak          Int                      @default(0)
+  streakLastDate         DateTime?
+  xpPoints               Int                      @default(0)
+  xpLevel                Int                      @default(1)
+  nationalRank           Int?
+  burnoutRisk            HealthRisk               @default(LOW)
+  burnoutScore           Float                    @default(0.0)
+  lastActiveAt           DateTime                 @default(now())
+  aiMemoryContext        String?
+  predictedScore         Json?
+  weakTopics             Json?
+  strongTopics           Json?
+  parentLinked           Boolean                  @default(false)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  deletedAt              DateTime?
+  todayMinutes           Int?                     @default(0)
+  lastStudyDate          DateTime?                @db.Timestamptz(6)
+  assignment_submissions assignment_submissions[]
+  bookmarks              bookmarks[]
+  course_enrollments     course_enrollments[]
+  daf_entries            daf_entries[]
+  interview_sessions     interview_sessions[]
+  mockResults            MockResult[]
+  notebook_entries       notebook_entries[]
+  parentLink             ParentChildLink[]
+  coaching_institutes    coaching_institutes?     @relation(fields: [instituteId], references: [id])
+  user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studySessions          StudySession[]
+  syllabus_progress      syllabus_progress[]
+  teacher_followers      teacher_followers[]
+  teacher_ratings        teacher_ratings[]
+  trial_bookings         trial_bookings[]
+
+  @@index([userId])
+  @@index([targetExam])
+  @@index([burnoutRisk])
+  @@index([xpPoints])
+  @@index([targetExam, xpPoints])
+  @@index([lastActiveAt])
+  @@index([nationalRank])
+  @@index([deletedAt])
+  @@index([instituteId])
+  @@index([subscriptionTier])
+  @@map("student_profiles")
+}
+
+model TeacherProfile {
+  id                      String                 @id @default(cuid())
+  userId                  String                 @unique
+  instituteId             String?
+  designation             String?
+  tagline                 String?
+  location                String?
+  teachingLanguages       String[]
+  gradeLevel              String[]
+  verificationStatus      VerificationStatus     @default(PENDING)
+  digiLockerVerified      Boolean                @default(false)
+  backgroundCheckVerified Boolean                @default(false)
+  aiFraudScore            Float                  @default(0.0)
+  educationCredentials    Json?
+  certifications          String[]
+  qualifications          String[]
+  subjects                String[]
+  exams                   ExamCategory[]
+  experienceYears         Int                    @default(0)
+  ratingAvg               Float                  @default(0.0)
+  ratingCount             Int                    @default(0)
+  ratingBreakdown         Json?
+  totalStudents           Int                    @default(0)
+  totalCourses            Int                    @default(0)
+  studentSuccessRate      Float?
+  hourlyRate              Int?
+  totalEarnings           Int                    @default(0)
+  pendingPayout           Int                    @default(0)
+  bankAccountAdded        Boolean                @default(false)
+  introVideoUrl           String?
+  demoLectureUrl          String?
+  bio                     String?
+  teachingMethodology     String?
+  youtubeUrl              String?
+  linkedinUrl             String?
+  mediaLinks              String[]
+  responseRateSLA         Int?
+  officeHoursSchedule     Json?
+  trustScore              Float                  @default(0.5)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  deletedAt               DateTime?
+  specialization          String?
+  rating                  Decimal?               @default(0) @db.Decimal
+  earnings                Decimal?               @default(0) @db.Decimal
+  assignments             assignments[]
+  content_audits          content_audits[]
+  courses                 courses[]
+  notes                   notes[]
+  teacher_achievements    teacher_achievements[]
+  teacher_followers       teacher_followers[]
+  coaching_institutes     coaching_institutes?   @relation(fields: [instituteId], references: [id])
+  user                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teacher_ratings         teacher_ratings[]
+  trial_bookings          trial_bookings[]
+
+  @@index([userId])
+  @@index([deletedAt])
+  @@index([exams])
+  @@index([instituteId])
+  @@index([ratingAvg])
+  @@index([trustScore])
+  @@index([verificationStatus])
+  @@map("teacher_profiles")
+}
+
+model ParentProfile {
+  id            String            @id @default(cuid())
+  userId        String            @unique
+  notifEmail    Boolean           @default(true)
+  notifWhatsapp Boolean           @default(false)
+  notifPush     Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+  alertPrefs    Json?             @default("{}")
+  city          String?
+  occupation    String?
+  children      ParentChildLink[]
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("parent_profiles")
+}
+
+model ParentChildLink {
+  id         String         @id @default(cuid())
+  parentId   String
+  studentId  String
+  isVerified Boolean        @default(false)
+  verifiedAt DateTime?
+  linkedAt   DateTime       @default(now())
+  deletedAt  DateTime?      @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+  parent     ParentProfile  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+  @@map("parent_child_links")
+}
+
+model HealthSurvey {
+  id                String     @id @default(cuid())
+  userId            String
+  weekStart         DateTime
+  moodScore         Int
+  sleepScore        Int
+  anxietyScore      Int
+  motivationScore   Int
+  focusScore        Int
+  overallScore      Float
+  riskLevel         HealthRisk
+  wantsCounselor    Boolean    @default(false)
+  notes             String?
+  aiResponse        String?
+  counselorAssigned Boolean    @default(false)
+  submittedAt       DateTime   @default(now())
+  deletedAt         DateTime?  @db.Timestamptz(6)
+  createdAt         DateTime?  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime?  @default(now()) @updatedAt @db.Timestamptz(6)
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, weekStart])
+  @@index([riskLevel])
+  @@index([weekStart])
+  @@map("health_surveys")
+}
+
+model WhiteboardSession {
+  id              String        @id @default(cuid())
+  title           String
+  hostId          String
+  examTag         ExamCategory?
+  status          SessionStatus @default(ACTIVE)
+  canvasData      Json          @default("[]")
+  canvasDataR2Key String?
+  maxMembers      Int           @default(6)
+  inviteCode      String        @unique @default(cuid())
+  botEnabled      Boolean       @default(true)
+  aiCorrections   Int           @default(0)
+  recordingUrl    String?
+  startedAt       DateTime      @default(now())
+  endedAt         DateTime?
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?     @db.Timestamptz(6)
+  isPublic        Boolean?      @default(false)
+  topic           String?
+  createdAt       DateTime?     @default(now()) @db.Timestamptz(6)
+
+  @@index([hostId])
+  @@index([status])
+  @@index([inviteCode])
+  @@index([examTag])
+  @@map("whiteboard_sessions")
+}
+
+model WhiteboardMember {
+  id        String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  sessionId String
+  userId    String
+  role      String    @default("MEMBER")
+  joinedAt  DateTime  @default(now()) @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  @@map("whiteboard_members")
+}
+
+model BotCorrection {
+  id        String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  sessionId String
+  userId    String
+  original  String
+  corrected String
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+  content   String?   @default("")
+  type      String?   @default("GRAMMAR")
+
+  @@map("bot_corrections")
+}
+
+model ExamCutoff {
+  id         String    @id @default(cuid())
+  examName   String
+  examYear   Int
+  stage      String
+  general    Float?
+  obc        Float?
+  sc         Float?
+  st         Float?
+  ews        Float?
+  pwd        Float?
+  totalMarks Int
+  sourceUrl  String?
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime? @db.Timestamptz(6)
+
+  @@unique([examName, examYear, stage])
+  @@index([examName])
+  @@index([examYear])
+  @@index([examName, examYear])
+  @@map("exam_cutoffs")
+}
+
+model MockResult {
+  id             String         @id @default(cuid())
+  studentId      String
+  testId         String
+  examCategory   ExamCategory
+  score          Float
+  totalMarks     Float
+  timeTakenSecs  Int
+  correctCount   Int            @default(0)
+  incorrectCount Int            @default(0)
+  skippedCount   Int            @default(0)
+  subjectBreakup Json
+  percentile     Float?
+  rank           Int?
+  attemptedAt    DateTime       @default(now())
+  deletedAt      DateTime?      @db.Timestamptz(6)
+  updatedAt      DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
+  createdAt      DateTime?      @default(now()) @db.Timestamptz(6)
+  student        StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([studentId, attemptedAt])
+  @@index([examCategory])
+  @@index([percentile])
+  @@map("mock_results")
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  userId     String
+  action     String
+  entityType String?
+  entityId   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime? @db.Timestamptz(6)
+  updatedAt  DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([userId, action, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model SubjectScore {
+  id        String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  studentId String
+  subject   String
+  score     Decimal   @default(0) @db.Decimal
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+
+  @@map("subject_scores")
+}
+
+model StudySession {
+  id          String         @id @default(cuid())
+  studentId   String
+  subject     String
+  topic       String?
+  examTag     ExamCategory
+  startedAt   DateTime       @default(now())
+  endedAt     DateTime?
+  durationMin Int?
+  isOffline   Boolean        @default(false)
+  deviceType  String?
+  deletedAt   DateTime?      @db.Timestamptz(6)
+  duration    Int            @default(0)
+  notes       String?
+  createdAt   DateTime?      @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
+  student     StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([examTag])
+  @@index([studentId, startedAt])
+  @@index([subject])
+  @@map("study_sessions")
+}
+
+model Notification {
+  id        String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  userId    String
+  title     String
+  body      String    @default("")
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  deletedAt DateTime? @db.Timestamptz(6)
+  type      String    @default("INFO")
+  link      String?
+
+  @@map("notifications")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model assignment_submissions {
+  id                String         @id
+  assignmentId      String
+  studentId         String
+  fileUrl           String?
+  bodyText          String?
+  aiScore           Float?
+  aiGradingJson     Json?
+  teacherScore      Float?
+  teacherFeedback   String?
+  isTeacherReviewed Boolean        @default(false)
+  submittedAt       DateTime       @default(now())
+  reviewedAt        DateTime?
+  updatedAt         DateTime
+  assignments       assignments    @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student_profiles  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([isTeacherReviewed])
+  @@index([studentId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model assignments {
+  id                     String                   @id
+  courseId               String
+  teacherId              String
+  title                  String
+  descriptionMd          String?
+  status                 AssignmentStatus         @default(DRAFT)
+  dueDate                DateTime?
+  maxMarks               Int                      @default(100)
+  examStandard           String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  deletedAt              DateTime?
+  assignment_submissions assignment_submissions[]
+  courses                courses                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher_profiles       TeacherProfile           @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([deletedAt])
+  @@index([dueDate])
+  @@index([status])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bookmarks {
+  id               String         @id
+  studentId        String
+  entityType       String
+  entityId         String
+  createdAt        DateTime       @default(now())
+  student_profiles StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, entityType, entityId])
+  @@index([studentId, entityType])
+  @@index([studentId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bookstore_items {
+  id            String            @id
+  title         String
+  author        String?
+  publisher     String?
+  description   String?
+  category      BookstoreCategory
+  examCategory  ExamCategory?
+  subject       String?
+  affiliateUrl  String
+  coverImageUrl String?
+  priceDisplay  String?
+  isSponsored   Boolean           @default(false)
+  isFeatured    Boolean           @default(false)
+  isActive      Boolean           @default(true)
+  clickCount    Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime
+  deletedAt     DateTime?
+
+  @@index([category])
+  @@index([deletedAt])
+  @@index([examCategory])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model coaching_institutes {
+  id                   String                 @id
+  name                 String
+  ownerId              String
+  customDomain         String?                @unique
+  brandingConfig       Json?
+  description          String?
+  websiteUrl           String?
+  isOnline             Boolean                @default(false)
+  isLocal              Boolean                @default(false)
+  city                 String?
+  state                String?
+  country              String                 @default("IN")
+  addressLine          String?
+  googleMapsUrl        String?
+  subscriptionTier     SubscriptionTier       @default(FREE)
+  subscriptionEnd      DateTime?
+  monthlyFeeInPaisa    Int?
+  verified             Boolean                @default(false)
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  deletedAt            DateTime?
+  users                User                   @relation(fields: [ownerId], references: [id])
+  coordinator_profiles coordinator_profiles[]
+  courses              courses[]
+  student_profiles     StudentProfile[]
+  teacher_profiles     TeacherProfile[]
+
+  @@index([deletedAt])
+  @@index([isLocal, city, state])
+  @@index([isOnline])
+  @@index([ownerId])
+  @@index([subscriptionTier])
+  @@index([verified])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model content_audits {
+  id                    String                @id
+  noteId                String                @unique
+  teacherId             String
+  inspectionProbability Float
+  status                AuditStatus           @default(PENDING)
+  coordinatorId         String?
+  rejectionReason       String?
+  resolvedAt            DateTime?
+  createdAt             DateTime              @default(now())
+  coordinator_profiles  coordinator_profiles? @relation(fields: [coordinatorId], references: [id])
+  notes                 notes                 @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  teacher_profiles      TeacherProfile        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([coordinatorId])
+  @@index([inspectionProbability])
+  @@index([status])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model coordinator_profiles {
+  id                  String               @id
+  userId              String               @unique
+  mfaEnabled          Boolean              @default(false)
+  mfaType             String?
+  mfaSecret           String?
+  operationalRegion   String?
+  instituteId         String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime
+  deletedAt           DateTime?
+  content_audits      content_audits[]
+  coaching_institutes coaching_institutes? @relation(fields: [instituteId], references: [id])
+  users               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([instituteId])
+  @@index([userId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model course_enrollments {
+  id               String           @id
+  studentId        String
+  courseId         String
+  paymentId        String?
+  status           EnrollmentStatus @default(ACTIVE)
+  enrolledAt       DateTime         @default(now())
+  completedAt      DateTime?
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  courses          courses          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student_profiles StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+  @@index([deletedAt])
+  @@index([paymentId])
+  @@index([status])
+  @@index([studentId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model courses {
+  id                  String               @id
+  teacherId           String
+  instituteId         String?
+  title               String
+  description         String?
+  examCategory        ExamCategory
+  subjects            String[]
+  gradeLevel          String[]
+  language            String               @default("hi")
+  priceInPaisa        Int                  @default(0)
+  maxStudents         Int?
+  isOnline            Boolean              @default(true)
+  batchStartDate      DateTime?
+  batchEndDate        DateTime?
+  scheduleJson        Json?
+  status              ContentStatus        @default(DRAFT)
+  thumbnailUrl        String?
+  introVideoUrl       String?
+  syllabusJson        Json?
+  enrolledCount       Int                  @default(0)
+  isTrialRequired     Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime
+  deletedAt           DateTime?
+  assignments         assignments[]
+  course_enrollments  course_enrollments[]
+  coaching_institutes coaching_institutes? @relation(fields: [instituteId], references: [id])
+  teacher_profiles    TeacherProfile       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  trial_bookings      trial_bookings[]
+
+  @@index([batchStartDate])
+  @@index([deletedAt])
+  @@index([examCategory])
+  @@index([instituteId])
+  @@index([isOnline])
+  @@index([status])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model current_affairs_articles {
+  id            String         @id
+  title         String
+  summary       String
+  bodyMd        String?
+  sourceUrl     String?
+  publishedDate DateTime
+  audioUrl      String?
+  examRelevance ExamCategory[]
+  tags          String[]
+  status        ContentStatus  @default(PUBLISHED)
+  viewCount     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime
+  deletedAt     DateTime?
+
+  @@index([deletedAt])
+  @@index([examRelevance])
+  @@index([publishedDate])
+  @@index([status])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model daf_entries {
+  id                 String               @id
+  studentId          String
+  pdfUrl             String?
+  knowledgeGraph     Json?
+  extractionStatus   String               @default("PENDING")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  deletedAt          DateTime?
+  student_profiles   StudentProfile       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  interview_sessions interview_sessions[]
+
+  @@index([deletedAt])
+  @@index([extractionStatus])
+  @@index([studentId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model document_vault {
+  id              String   @id
+  userId          String
+  docType         String
+  s3Key           String
+  encryptionKeyId String
+  extractedFields Json?
+  fileName        String?
+  fileSize        Int?
+  mimeType        String?
+  isActive        Boolean  @default(true)
+  uploadedAt      DateTime @default(now())
+  updatedAt       DateTime
+  users           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@index([userId, docType])
+  @@index([userId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model exam_calendar_events {
+  id                    String       @id
+  examName              String
+  examCategory          ExamCategory
+  eventType             String
+  eventDate             DateTime
+  registrationStartDate DateTime?
+  registrationEndDate   DateTime?
+  notifyBeforeDays      Int[]
+  officialUrl           String?
+  iCalString            String?
+  isActive              Boolean      @default(true)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime
+  deletedAt             DateTime?
+
+  @@index([deletedAt])
+  @@index([eventDate])
+  @@index([eventType])
+  @@index([examCategory])
+  @@index([isActive])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model form_autofill_templates {
+  id             String       @id
+  examName       String
+  examCategory   ExamCategory
+  formUrl        String?
+  selectorConfig Json
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+
+  @@index([examCategory])
+  @@index([isActive])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model free_resources {
+  id            String           @id
+  title         String
+  description   String?
+  resourceType  FreeResourceType
+  examCategory  ExamCategory
+  subject       String?
+  topic         String?
+  tags          String[]
+  fileUrl       String?
+  externalUrl   String?
+  thumbnailUrl  String?
+  uploadedById  String?
+  status        ContentStatus    @default(PUBLISHED)
+  viewCount     Int              @default(0)
+  downloadCount Int              @default(0)
+  flagCount     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime
+  deletedAt     DateTime?
+  users         User?            @relation(fields: [uploadedById], references: [id])
+
+  @@index([deletedAt])
+  @@index([examCategory])
+  @@index([resourceType])
+  @@index([status])
+  @@index([subject])
+  @@index([uploadedById])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model interview_sessions {
+  id                  String           @id
+  studentId           String
+  dafEntryId          String?
+  paymentId           String?
+  persona             InterviewPersona
+  durationSecs        Int?
+  eyeContactPct       Float?
+  speechRateWpm       Int?
+  fillerWordPerMin    Float?
+  vocalStabilityScore Float?
+  subjectMasteryScore Float?
+  communicationScore  Float?
+  confidenceScore     Float?
+  constitutionalScore Float?
+  overallScore        Float?
+  scorecard           Json?
+  allDataDeletedAt    DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime
+  daf_entries         daf_entries?     @relation(fields: [dafEntryId], references: [id])
+  student_profiles    StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([dafEntryId])
+  @@index([persona])
+  @@index([studentId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mesh_nodes {
+  id               String   @id
+  deviceId         String
+  city             String
+  state            String?
+  assetId          String
+  assetHash        String
+  localIpHash      String
+  transferProtocol String   @default("WIFI_DIRECT")
+  isOnline         Boolean  @default(true)
+  lastSeenAt       DateTime @default(now())
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([assetHash])
+  @@index([assetId])
+  @@index([city])
+  @@index([expiresAt])
+  @@index([isOnline])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model notebook_entries {
+  id               String         @id
+  studentId        String
+  title            String?
+  bodyMd           String
+  tags             String[]
+  examTag          ExamCategory?
+  subject          String?
+  topic            String?
+  isOfflineSynced  Boolean        @default(false)
+  isFavorited      Boolean        @default(false)
+  snapshot3dConfig Json?
+  sourceType       String?
+  sourceId         String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  student_profiles StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([isFavorited])
+  @@index([isOfflineSynced])
+  @@index([studentId, examTag])
+  @@index([studentId])
+  @@index([studentId, subject])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model notes {
+  id               String          @id
+  teacherId        String
+  instituteId      String?
+  title            String
+  description      String?
+  noteType         NoteType
+  examCategory     ExamCategory
+  subject          String
+  topic            String?
+  tags             String[]
+  fileUrl          String?
+  bodyMd           String?
+  thumbnailUrl     String?
+  priceInPaisa     Int             @default(0)
+  isFree           Boolean         @default(false)
+  plagiarismScore  Float?
+  watermarkKey     String?
+  status           ContentStatus   @default(PUBLISHED)
+  flagCount        Int             @default(0)
+  viewCount        Int             @default(0)
+  downloadCount    Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  content_audits   content_audits?
+  teacher_profiles TeacherProfile  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([examCategory])
+  @@index([flagCount])
+  @@index([instituteId])
+  @@index([noteType])
+  @@index([priceInPaisa])
+  @@index([status])
+  @@index([subject])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model payments {
+  id                 String            @id
+  userId             String
+  amount             Int
+  currency           String            @default("INR")
+  status             PaymentStatus     @default(PENDING)
+  razorpayOrderId    String?           @unique
+  razorpayPaymentId  String?           @unique
+  description        String?
+  subscriptionTier   SubscriptionTier?
+  teacherSessionId   String?
+  courseEnrollmentId String?
+  refundAmount       Int?
+  refundReason       String?
+  metadata           Json?
+  paidAt             DateTime?
+  refundedAt         DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime
+
+  @@index([paidAt])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([status])
+  @@index([userId])
+  @@index([userId, status])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pyq_questions {
+  id            String        @id
+  examCategory  ExamCategory
+  examName      String
+  year          Int
+  subject       String
+  topic         String?
+  questionText  String
+  options       Json
+  correctKey    String
+  explanationEn String?
+  explanationHi String?
+  explanationAi String?
+  difficultyTag String?
+  status        ContentStatus @default(PUBLISHED)
+  flagCount     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  deletedAt     DateTime?
+
+  @@index([deletedAt])
+  @@index([examCategory])
+  @@index([examCategory, subject])
+  @@index([examCategory, year])
+  @@index([flagCount])
+  @@index([status])
+  @@index([subject])
+  @@index([year])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model referrals {
+  id              String   @id
+  referrerId      String
+  referredUserId  String   @unique
+  referralCode    String
+  rewardGranted   Boolean  @default(false)
+  rewardAmount    Int?
+  convertedToPaid Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+
+  @@index([referralCode])
+  @@index([referrerId])
+  @@index([rewardGranted])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model streak_tokens {
+  id        String    @id
+  studentId String
+  source    String
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([studentId])
+  @@index([studentId, isUsed])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model syllabus_progress {
+  id               String         @id
+  studentId        String
+  examCategory     ExamCategory
+  subject          String
+  topic            String
+  isCompleted      Boolean        @default(false)
+  completedAt      DateTime?
+  confidenceLevel  Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  student_profiles StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, examCategory, subject, topic])
+  @@index([isCompleted])
+  @@index([studentId, examCategory])
+  @@index([studentId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model teacher_achievements {
+  id               String         @id
+  teacherId        String
+  title            String
+  detail           String?
+  examCategory     ExamCategory?
+  examYear         Int?
+  rank             Int?
+  isFeatured       Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  teacher_profiles TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([examCategory])
+  @@index([isFeatured])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model teacher_followers {
+  id                String         @id
+  teacherId         String
+  studentId         String
+  notifyOnNewCourse Boolean        @default(true)
+  notifyOnNewNote   Boolean        @default(true)
+  followedAt        DateTime       @default(now())
+  student_profiles  StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher_profiles  TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, studentId])
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model teacher_ratings {
+  id               String         @id
+  teacherId        String
+  studentId        String
+  courseId         String?
+  rating           Int
+  reviewText       String?
+  resultClaim      String?
+  isHighlighted    Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  student_profiles StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher_profiles TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, studentId])
+  @@index([deletedAt])
+  @@index([isHighlighted])
+  @@index([rating])
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model trial_bookings {
+  id               String         @id
+  studentId        String
+  teacherId        String
+  courseId         String?
+  scheduledAt      DateTime
+  status           String         @default("PENDING")
+  meetingUrl       String?
+  studentNotes     String?
+  teacherNotes     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  courses          courses?       @relation(fields: [courseId], references: [id])
+  student_profiles StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher_profiles TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@index([studentId])
+  @@index([teacherId])
 }
 
 enum Role {
@@ -44,355 +1127,86 @@ enum SessionStatus {
   ARCHIVED
 }
 
-model User {
-  id            String    @id @default(cuid())
-  supabaseId    String    @unique
-  email         String    @unique
-  phone         String?   @unique
-  name          String
-  role          Role      @default(STUDENT)
-  languagePref  String    @default("en")
-  avatarUrl     String?
-  isVerified    Boolean   @default(false)
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
-
-  studentProfile  StudentProfile?
-  teacherProfile  TeacherProfile?
-  parentProfile   ParentProfile?
-  sessions        WhiteboardSession[]
-  healthSurveys   HealthSurvey[]
-  notifications   Notification[]
-  auditLogs       AuditLog[]
-
-  @@index([email])
-  @@index([phone])
-  @@index([role, isActive])
-  @@index([createdAt])
-  @@index([deletedAt])
-  @@map("users")
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  GRADING
+  GRADED
 }
 
-model StudentProfile {
-  id              String        @id @default(cuid())
-  userId          String        @unique
-  targetExam      ExamCategory
-  targetYear      Int
-  category        String
-  studyHoursGoal  Int           @default(8)
-  currentStreak   Int           @default(0)
-  longestStreak   Int           @default(0)
-  xpPoints        Int           @default(0)
-  nationalRank    Int?
-  burnoutRisk     HealthRisk    @default(LOW)
-  lastActiveAt    DateTime      @default(now())
-  totalStudyMins  Int           @default(0)
-  parentLinked    Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?
-
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mockResults     MockResult[]
-  subjectScores   SubjectScore[]
-  studySessions   StudySession[]
-  parentLink      ParentChildLink[]
-
-  @@index([userId])
-  @@index([targetExam])
-  @@index([burnoutRisk])
-  @@index([xpPoints])
-  @@index([targetExam, xpPoints])
-  @@index([lastActiveAt])
-  @@index([nationalRank])
-  @@index([category])
-  @@index([deletedAt])
-  @@map("student_profiles")
+enum AuditStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
-model TeacherProfile {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  bio           String?
-  specialization String?
-  rating        Float    @default(0.0)
-  earnings      Decimal  @default(0.0) @db.Decimal(12, 2)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  deletedAt     DateTime?
-
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([rating])
-  @@index([specialization])
-  @@index([deletedAt])
-  @@map("teacher_profiles")
+enum BookstoreCategory {
+  BOOK
+  STATIONERY
+  EXAM_GUIDE
+  DIGITAL_RESOURCE
 }
 
-model ParentProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  occupation   String?
-  city         String?
-  alertPrefs   Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  deletedAt    DateTime?
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  children     ParentChildLink[]
-
-  @@index([userId])
-  @@index([city])
-  @@index([deletedAt])
-  @@map("parent_profiles")
+enum ContentStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
 }
 
-model ParentChildLink {
-  id          String   @id @default(cuid())
-  parentId    String
-  studentId   String
-  isVerified  Boolean  @default(false)
-  linkedAt    DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  parent       ParentProfile   @relation(fields: [parentId], references: [id])
-  student      StudentProfile  @relation(fields: [studentId], references: [id])
-
-  @@unique([parentId, studentId])
-  @@index([parentId])
-  @@index([studentId])
-  @@index([isVerified])
-  @@index([deletedAt])
-  @@map("parent_child_links")
+enum EnrollmentStatus {
+  TRIAL
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  REFUNDED
 }
 
-model HealthSurvey {
-  id              String     @id @default(cuid())
-  userId          String
-  weekStart       DateTime
-  moodScore       Int
-  sleepScore      Int
-  anxietyScore    Int
-  motivationScore Int
-  overallScore    Float
-  riskLevel       HealthRisk
-  wantsCounselor  Boolean    @default(false)
-  notes           String?
-  aiResponse      String?
-  submittedAt     DateTime   @default(now())
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  deletedAt       DateTime?
-
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, weekStart])
-  @@index([riskLevel])
-  @@index([weekStart])
-  @@index([submittedAt])
-  @@index([deletedAt])
-  @@map("health_surveys")
+enum FreeResourceType {
+  CRUX_NOTE
+  BOOK_PDF
+  DIGITAL_NOTE
+  VIDEO_LECTURE
+  AUDIO_BRIEF
+  PRACTICE_SET
+  FORMULA_SHEET
 }
 
-model WhiteboardSession {
-  id            String         @id @default(cuid())
-  title         String
-  topic         String?
-  hostId        String
-  status        SessionStatus @default(ACTIVE)
-  canvasData    Json
-  maxMembers    Int            @default(6)
-  isPublic      Boolean        @default(false)
-  inviteCode    String         @unique @default(cuid())
-  botEnabled    Boolean        @default(true)
-  aiCorrections Int            @default(0)
-  startedAt     DateTime       @default(now())
-  endedAt       DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
-
-  host          User           @relation(fields: [hostId], references: [id])
-  members       WhiteboardMember[]
-  corrections   BotCorrection[]
-
-  @@index([hostId])
-  @@index([status])
-  @@index([inviteCode])
-  @@index([topic])
-  @@index([createdAt])
-  @@index([deletedAt])
-  @@map("whiteboard_sessions")
+enum InterviewPersona {
+  TECHNICAL
+  SYMPATHETIC
+  AGGRESSIVE
 }
 
-model WhiteboardMember {
-  id        String            @id @default(cuid())
-  sessionId String
-  userId    String?
-  joinedAt  DateTime          @default(now())
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  deletedAt DateTime?
-
-  session   WhiteboardSession @relation(fields: [sessionId], references: [id])
-
-  @@index([sessionId])
-  @@index([userId])
-  @@index([deletedAt])
-  @@map("whiteboard_members")
+enum NoteType {
+  HANDWRITTEN
+  CRUX
+  FORMULA_SHEET
+  DIGITAL
+  PDF
+  REVISION_CAPSULE
 }
 
-model BotCorrection {
-  id        String            @id @default(cuid())
-  sessionId String
-  content   String
-  type      String?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  deletedAt DateTime?
-
-  session   WhiteboardSession @relation(fields: [sessionId], references: [id])
-
-  @@index([sessionId])
-  @@index([createdAt])
-  @@index([deletedAt])
-  @@map("bot_corrections")
+enum PaymentStatus {
+  PENDING
+  ESCROW
+  RELEASED
+  DISPUTED
+  REFUNDED
+  FAILED
 }
 
-model ExamCutoff {
-  id          String   @id @default(cuid())
-  examName    String
-  examYear    Int
-  stage       String
-  general     Float?
-  obc         Float?
-  sc          Float?
-  st          Float?
-  ews         Float?
-  pwd         Float?
-  totalMarks  Int
-  sourceUrl   String?
-  verifiedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  @@unique([examName, examYear, stage])
-  @@index([examName])
-  @@index([examYear])
-  @@index([stage])
-  @@index([examName, examYear])
-  @@index([deletedAt])
-  @@map("exam_cutoffs")
+enum SubscriptionTier {
+  FREE
+  ASPIRANT
+  PRO
+  ELITE
 }
 
-model MockResult {
-  id             String   @id @default(cuid())
-  studentId      String
-  testId         String
-  score          Float
-  totalMarks     Float
-  timeTakenSecs  Int
-  subjectBreakup Json
-  percentile     Float?
-  rank           Int?
-  attemptedAt    DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  deletedAt      DateTime?
-
-  student        StudentProfile @relation(fields: [studentId], references: [id])
-
-  @@index([studentId])
-  @@index([studentId, attemptedAt])
-  @@index([testId])
-  @@index([attemptedAt])
-  @@index([score])
-  @@index([deletedAt])
-  @@map("mock_results")
-}
-
-model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String
-  action      String
-  entityType  String?
-  entityId    String?
-  ipAddress   String?
-  userAgent   String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  user        User     @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-  @@index([userId, action, createdAt])
-  @@index([entityType, entityId])
-  @@index([deletedAt])
-  @@map("audit_logs")
-}
-
-model SubjectScore {
-  id        String   @id @default(cuid())
-  studentId String
-  subject   String
-  score     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  student   StudentProfile @relation(fields: [studentId], references: [id])
-
-  @@index([studentId])
-  @@index([subject])
-  @@index([studentId, subject])
-  @@index([deletedAt])
-  @@map("subject_scores")
-}
-
-model StudySession {
-  id        String   @id @default(cuid())
-  studentId String
-  duration  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  student   StudentProfile @relation(fields: [studentId], references: [id])
-
-  @@index([studentId])
-  @@index([studentId, createdAt])
-  @@index([createdAt])
-  @@index([deletedAt])
-  @@map("study_sessions")
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  body      String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([userId, read])
-  @@index([createdAt])
-  @@index([deletedAt])
-  @@map("notifications")
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  SUSPENDED
+  REJECTED
 }
