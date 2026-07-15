@@ -25,7 +25,6 @@ export const teacherService = {
           burnoutRisk: true,
           nationalRank: true,
           user: { select: { name: true } },
-          subjectScores: { orderBy: { score: 'asc' }, take: 1 },
         },
       }),
       db.studentProfile.findMany({
@@ -38,7 +37,6 @@ export const teacherService = {
           nationalRank: true,
           burnoutRisk: true,
           user: { select: { name: true } },
-          subjectScores: { orderBy: { score: 'desc' }, take: 1 },
         },
       }),
     ])
@@ -58,8 +56,8 @@ export const teacherService = {
         exam: s.targetExam,
         burnoutRisk: s.burnoutRisk,
         nationalRank: s.nationalRank,
-        weakestSubject: s.subjectScores[0]?.subject ?? null,
-        weakestScore: s.subjectScores[0]?.score ?? null,
+        weakestSubject: null,
+        weakestScore: null,
       })),
       recentStudents: recentStudents.map((s) => ({
         id: s.id,
@@ -67,7 +65,7 @@ export const teacherService = {
         exam: s.targetExam,
         burnoutRisk: s.burnoutRisk,
         nationalRank: s.nationalRank,
-        topScore: s.subjectScores[0]?.score ?? null,
+        topScore: null,
       })),
     }
   },

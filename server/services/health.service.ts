@@ -35,6 +35,7 @@ export const healthService = {
         sleepScore: data.sleepScore,
         anxietyScore: data.anxietyScore,
         motivationScore: data.motivationScore,
+        focusScore: data.motivationScore,
         overallScore,
         riskLevel: riskLevel as any,
         wantsCounselor: data.wantsCounselor,

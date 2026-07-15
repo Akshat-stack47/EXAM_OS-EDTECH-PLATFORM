@@ -20,7 +20,6 @@ export const parentService = {
                     },
                   },
                 },
-                subjectScores: { orderBy: { score: 'desc' as const }, take: 6 },
               },
             },
           },

@@ -6,10 +6,7 @@ export const whiteboardService = {
     const where = hostId ? { hostId } : {}
     return db.whiteboardSession.findMany({
       where,
-      select: { id: true, title: true, topic: true, status: true, hostId: true, startedAt: true, createdAt: true,
-        host: { select: { name: true } },
-        _count: { select: { members: true } },
-      },
+      select: { id: true, title: true, topic: true, status: true, hostId: true, startedAt: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     })
   },
@@ -17,10 +14,7 @@ export const whiteboardService = {
   async getById(id: string) {
     return db.whiteboardSession.findUnique({
       where: { id },
-      select: { id: true, title: true, topic: true, status: true, hostId: true, canvasData: true, maxMembers: true, isPublic: true, inviteCode: true, botEnabled: true, startedAt: true, endedAt: true, createdAt: true,
-        host: { select: { name: true, email: true } },
-        members: { select: { id: true } },
-      },
+      select: { id: true, title: true, topic: true, status: true, hostId: true, canvasData: true, maxMembers: true, isPublic: true, inviteCode: true, botEnabled: true, startedAt: true, endedAt: true, createdAt: true },
     })
   },
 

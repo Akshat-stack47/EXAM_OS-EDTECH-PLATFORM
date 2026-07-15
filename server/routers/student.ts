@@ -17,7 +17,7 @@ export const studentRouter = createTRPCRouter({
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
     const todaySessions = profile.studySessions.filter(
-      (s) => new Date(s.createdAt) >= todayStart
+      (s) => new Date(s.createdAt ?? Date.now()) >= todayStart
     )
     const todayMinutes = todaySessions.reduce((sum, s) => sum + s.duration, 0)
 
@@ -33,10 +33,9 @@ export const studentRouter = createTRPCRouter({
         xpPoints: profile.xpPoints,
         burnoutRisk: profile.burnoutRisk,
       },
-      scores: scores.map((s) => ({ subject: s.subject, score: s.score })),
       recentSessions: profile.studySessions.slice(0, 5).map((s) => ({
         duration: s.duration,
-        createdAt: s.createdAt,
+        createdAt: s.createdAt ?? new Date(),
       })),
       latestHealth,
       mockResults,

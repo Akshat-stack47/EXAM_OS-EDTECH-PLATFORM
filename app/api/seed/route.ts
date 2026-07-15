@@ -60,9 +60,10 @@ export async function GET(req: NextRequest) {
       }
 
       // Study sessions
+      const sessionSubjects = ['Polity', 'History', 'Geography', 'Economy', 'Science & Tech']
       for (let i = 0; i < 10; i++) {
         const d = new Date(); d.setDate(d.getDate() - i)
-        await db.studySession.create({ data: { studentId: studentProfile.id, duration: 45 + i * 5, createdAt: d } })
+        await db.studySession.create({ data: { studentId: studentProfile.id, subject: sessionSubjects[i % sessionSubjects.length], examTag: 'UPSC' as any, duration: 45 + i * 5, createdAt: d } })
       }
 
       // Mock results
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
         await db.mockResult.create({
           data: {
             studentId: studentProfile.id, testId: `mock-${i + 1}`,
+            examCategory: 'UPSC' as const,
             score: 120 + i * 10, totalMarks: 200, timeTakenSecs: 5400 + i * 300,
             percentile: 72 + i * 4, rank: 2000 - i * 100,
             subjectBreakup: { history: 24, polity: 28, geography: 22, economy: 24 },

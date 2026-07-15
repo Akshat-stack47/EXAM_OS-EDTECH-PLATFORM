@@ -29,10 +29,12 @@ async function main() {
   for (const email of seedEmails) {
     const user = await db.user.findUnique({ where: { email } })
     if (user) {
-      // Delete dependent records first
-      await db.studySession.deleteMany({ where: { student: { userId: user.id } } })
-      await db.subjectScore.deleteMany({ where: { student: { userId: user.id } } })
-      await db.mockResult.deleteMany({ where: { student: { userId: user.id } } })
+      const sp = await db.studentProfile.findUnique({ where: { userId: user.id }, select: { id: true } })
+      if (sp) {
+        await db.studySession.deleteMany({ where: { studentId: sp.id } })
+        await db.subjectScore.deleteMany({ where: { studentId: sp.id } })
+        await db.mockResult.deleteMany({ where: { studentId: sp.id } })
+      }
       await db.notification.deleteMany({ where: { userId: user.id } })
       await db.auditLog.deleteMany({ where: { userId: user.id } })
       await db.studentProfile.deleteMany({ where: { userId: user.id } })
@@ -86,8 +88,9 @@ async function main() {
   // Study sessions (last 10 days)
   for (let i = 0; i < 10; i++) {
     const d = new Date(); d.setDate(d.getDate() - i)
+    const subj = ['Polity', 'History', 'Geography', 'Economy', 'Science & Tech'][i % 5]
     await db.studySession.create({
-      data: { studentId: studentProfile.id, duration: 45 + Math.floor(Math.random() * 90), createdAt: d },
+      data: { studentId: studentProfile.id, subject: subj, examTag: 'UPSC', duration: 45 + Math.floor(Math.random() * 90), createdAt: d },
     })
   }
 
@@ -98,6 +101,7 @@ async function main() {
       data: {
         studentId: studentProfile.id,
         testId: `mock-${i + 1}`,
+        examCategory: 'UPSC' as const,
         score: 120 + Math.floor(Math.random() * 60),
         totalMarks: 200,
         timeTakenSecs: 5400 + Math.floor(Math.random() * 1800),
@@ -118,6 +122,7 @@ async function main() {
       sleepScore: 7,
       anxietyScore: 4,
       motivationScore: 9,
+      focusScore: 8,
       overallScore: 7.5,
       riskLevel: 'LOW',
       wantsCounselor: false,

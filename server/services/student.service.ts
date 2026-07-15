@@ -94,10 +94,10 @@ export const studentService = {
     })
   },
 
-  async logStudySession(studentId: string, durationMinutes: number) {
+  async logStudySession(studentId: string, durationMinutes: number, subject = 'General', examTag: string = 'UPSC') {
     const [session] = await db.$transaction([
       db.studySession.create({
-        data: { studentId, duration: durationMinutes },
+        data: { studentId, duration: durationMinutes, subject, examTag: examTag as any },
       }),
       db.studentProfile.update({
         where: { id: studentId },
